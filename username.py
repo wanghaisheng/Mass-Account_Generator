@@ -15,8 +15,36 @@ class NameFormats(BaseModel):
     first_l: List[str]
     first: List[str]
 
+class NameFormatsWithEmail(NameFormats):
+    f_last_email: List[str]
+    f_dot_last_email: List[str]
+    last_f_email: List[str]
+    first_dot_last_email: List[str]
+    first_l_email: List[str]
+    first_email: List[str]
+
 @app.get("/generate_names/", response_model=List[NameFormats])
 async def generate_names(count: int = Query(10, description="Number of names to generate", ge=1, le=1000)):
+    return generate_name_formats(count)
+
+@app.get("/generate_names_with_email/", response_model=List[NameFormatsWithEmail])
+async def generate_names_with_email(
+    count: int = Query(10, description="Number of names to generate", ge=1, le=1000),
+    domain: str = Query(..., description="Email domain to append")
+):
+    names = generate_name_formats(count)
+    names_with_email = []
+
+    for name in names:
+        name_dict = name.dict()
+        for key in name_dict:
+            if key != 'full_name':
+                name_dict[f"{key}_email"] = [f"{item}@{domain}" for item in name_dict[key]]
+        names_with_email.append(NameFormatsWithEmail(**name_dict))
+
+    return names_with_email
+
+def generate_name_formats(count: int) -> List[NameFormats]:
     names = []
     
     with open("Fnames.txt") as f_names, open("Lnames.txt") as l_names:
